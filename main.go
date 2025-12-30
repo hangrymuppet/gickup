@@ -3,6 +3,7 @@ package main
 import (
 	"fmt"
 	"io"
+	"net/http"
 	"os"
 	"os/user"
 	"path"
@@ -18,6 +19,7 @@ import (
 	"github.com/cooperspencer/gickup/sourcehut"
 	"github.com/go-git/go-git/v5"
 	"github.com/go-git/go-git/v5/plumbing/transport"
+	githttp "github.com/go-git/go-git/v5/plumbing/transport/http"
 	"github.com/google/go-cmp/cmp"
 	"github.com/minio/minio-go/v7"
 
@@ -883,6 +885,24 @@ func backup(repos []types.Repo, conf *types.Conf) {
 
 func runBackup(conf *types.Conf, num int) {
 	log.Info().Msg("Backup run starting")
+
+	// Configure HTTP client timeout for git operations
+	timeout := conf.HTTPTimeout
+	if timeout <= 0 {
+		timeout = 300 // Default to 300 seconds (5 minutes)
+	}
+	httpClient := &http.Client{
+		Timeout: time.Duration(timeout) * time.Second,
+		Transport: &http.Transport{
+			TLSHandshakeTimeout:   10 * time.Second,
+			ResponseHeaderTimeout: time.Duration(timeout) * time.Second,
+			ExpectContinueTimeout: 1 * time.Second,
+		},
+	}
+	githttp.DefaultClient = githttp.NewClient(httpClient)
+	log.Debug().
+		Int("timeout", timeout).
+		Msg("Configured HTTP timeout for git operations")
 
 	numstring := strconv.Itoa(num)
 

@@ -64,6 +64,7 @@ type Conf struct {
 	Cron        string      `yaml:"cron"`
 	Log         Logging     `yaml:"log"`
 	Metrics     Metrics     `yaml:"metrics"`
+	HTTPTimeout int         `yaml:"httptimeout"` // HTTP timeout in seconds for git operations (default: 300)
 }
 
 // PrometheusConfig TODO.
