@@ -3,6 +3,7 @@ package main
 import (
 	"fmt"
 	"io"
+	"net/http"
 	"os"
 	"os/user"
 	"path"
@@ -18,6 +19,7 @@ import (
 	"github.com/cooperspencer/gickup/sourcehut"
 	"github.com/go-git/go-git/v5"
 	"github.com/go-git/go-git/v5/plumbing/transport"
+	githttp "github.com/go-git/go-git/v5/plumbing/transport/http"
 	"github.com/google/go-cmp/cmp"
 	"github.com/minio/minio-go/v7"
 
@@ -41,6 +43,15 @@ import (
 	"github.com/robfig/cron/v3"
 	"github.com/rs/zerolog"
 	"github.com/rs/zerolog/log"
+)
+
+const (
+	// Default HTTP timeout for git operations
+	defaultHTTPTimeout = "10s"
+	// TLS handshake timeout for git operations
+	tlsHandshakeTimeout = 10 * time.Second
+	// HTTP expect continue timeout for git operations
+	expectContinueTimeout = 1 * time.Second
 )
 
 var cli struct {
@@ -883,6 +894,42 @@ func backup(repos []types.Repo, conf *types.Conf) {
 
 func runBackup(conf *types.Conf, num int) {
 	log.Info().Msg("Backup run starting")
+
+	// Configure HTTP client timeout for git operations
+	timeoutStr := conf.HTTPTimeout
+	if timeoutStr == "" {
+		timeoutStr = defaultHTTPTimeout
+	}
+	
+	// Parse timeout: try as duration string first, then as plain number (seconds)
+	timeout, err := time.ParseDuration(timeoutStr)
+	if err != nil {
+		// If parsing fails, try treating it as a number of seconds
+		if seconds, parseErr := strconv.Atoi(timeoutStr); parseErr == nil {
+			timeout = time.Duration(seconds) * time.Second
+		} else {
+			log.Warn().
+				Str("value", timeoutStr).
+				Err(err).
+				Msgf("Invalid httptimeout value, using default %s", defaultHTTPTimeout)
+			timeout, _ = time.ParseDuration(defaultHTTPTimeout)
+		}
+	}
+	
+	httpClient := &http.Client{
+		Timeout: timeout,
+		Transport: &http.Transport{
+			// TLS handshake should complete quickly (network handshake)
+			TLSHandshakeTimeout: tlsHandshakeTimeout,
+			// Response header timeout should match overall timeout since git operations can take time
+			ResponseHeaderTimeout: timeout,
+			ExpectContinueTimeout: expectContinueTimeout,
+		},
+	}
+	githttp.DefaultClient = githttp.NewClient(httpClient)
+	log.Debug().
+		Str("timeout", timeout.String()).
+		Msg("Configured HTTP timeout for git operations")
 
 	numstring := strconv.Itoa(num)
 

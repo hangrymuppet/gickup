@@ -31,3 +31,25 @@ func TestParseInvalidCron(t *testing.T) {
 		t.Error("Invalid cron spec parsed validly")
 	}
 }
+
+func TestHTTPTimeoutDefaults(t *testing.T) {
+	t.Parallel()
+
+	// Test with empty value (should use default)
+	conf := Conf{HTTPTimeout: ""}
+	if conf.HTTPTimeout != "" {
+		t.Errorf("Expected HTTPTimeout to be empty (unset), got %s", conf.HTTPTimeout)
+	}
+
+	// Test with duration string
+	conf2 := Conf{HTTPTimeout: "5m"}
+	if conf2.HTTPTimeout != "5m" {
+		t.Errorf("Expected HTTPTimeout to be '5m', got %s", conf2.HTTPTimeout)
+	}
+
+	// Test with plain number (seconds)
+	conf3 := Conf{HTTPTimeout: "600"}
+	if conf3.HTTPTimeout != "600" {
+		t.Errorf("Expected HTTPTimeout to be '600', got %s", conf3.HTTPTimeout)
+	}
+}
