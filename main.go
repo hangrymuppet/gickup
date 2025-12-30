@@ -903,7 +903,9 @@ func runBackup(conf *types.Conf, num int) {
 	httpClient := &http.Client{
 		Timeout: time.Duration(timeout) * time.Second,
 		Transport: &http.Transport{
-			TLSHandshakeTimeout:   tlsHandshakeTimeout,
+			// TLS handshake should complete quickly (network handshake)
+			TLSHandshakeTimeout: tlsHandshakeTimeout,
+			// Response header timeout should match overall timeout since git operations can take time
 			ResponseHeaderTimeout: time.Duration(timeout) * time.Second,
 			ExpectContinueTimeout: expectContinueTimeout,
 		},
