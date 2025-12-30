@@ -46,8 +46,8 @@ import (
 )
 
 const (
-	// Default HTTP timeout for git operations (in seconds)
-	defaultHTTPTimeout = 300
+	// Default HTTP timeout for git operations
+	defaultHTTPTimeout = "10s"
 	// TLS handshake timeout for git operations
 	tlsHandshakeTimeout = 10 * time.Second
 	// HTTP expect continue timeout for git operations
@@ -896,23 +896,39 @@ func runBackup(conf *types.Conf, num int) {
 	log.Info().Msg("Backup run starting")
 
 	// Configure HTTP client timeout for git operations
-	timeout := conf.HTTPTimeout
-	if timeout <= 0 {
-		timeout = defaultHTTPTimeout
+	timeoutStr := conf.HTTPTimeout
+	if timeoutStr == "" {
+		timeoutStr = defaultHTTPTimeout
 	}
+	
+	// Parse timeout: try as duration string first, then as plain number (seconds)
+	timeout, err := time.ParseDuration(timeoutStr)
+	if err != nil {
+		// If parsing fails, try treating it as a number of seconds
+		if seconds, parseErr := strconv.Atoi(timeoutStr); parseErr == nil {
+			timeout = time.Duration(seconds) * time.Second
+		} else {
+			log.Warn().
+				Str("value", timeoutStr).
+				Err(err).
+				Msgf("Invalid httptimeout value, using default %s", defaultHTTPTimeout)
+			timeout, _ = time.ParseDuration(defaultHTTPTimeout)
+		}
+	}
+	
 	httpClient := &http.Client{
-		Timeout: time.Duration(timeout) * time.Second,
+		Timeout: timeout,
 		Transport: &http.Transport{
 			// TLS handshake should complete quickly (network handshake)
 			TLSHandshakeTimeout: tlsHandshakeTimeout,
 			// Response header timeout should match overall timeout since git operations can take time
-			ResponseHeaderTimeout: time.Duration(timeout) * time.Second,
+			ResponseHeaderTimeout: timeout,
 			ExpectContinueTimeout: expectContinueTimeout,
 		},
 	}
 	githttp.DefaultClient = githttp.NewClient(httpClient)
 	log.Debug().
-		Int("timeout", timeout).
+		Str("timeout", timeout.String()).
 		Msg("Configured HTTP timeout for git operations")
 
 	numstring := strconv.Itoa(num)

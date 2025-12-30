@@ -298,7 +298,7 @@ cron: 0 22 * * * # optional - when cron is not provided, the program runs once a
 # in the timezone you want.
 # For more information on crontab or testing: https://crontab.guru/
 
-httptimeout: 300 # optional - HTTP timeout in seconds for git operations (default: 300). Increase this if you have slow git servers that take longer than 5 minutes to respond.
+httptimeout: 10s # optional - HTTP timeout for git operations (default: 10s). Supports duration strings like "10s", "5m", "1h". Plain numbers are treated as seconds.
 
 log: # optional
   timeformat: 2006-01-02 15:04:05 # you can use a custom time format, use https://yourbasic.org/golang/format-parse-string-time-date-example/ to check how date formats work in go

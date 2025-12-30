@@ -35,21 +35,21 @@ func TestParseInvalidCron(t *testing.T) {
 func TestHTTPTimeoutDefaults(t *testing.T) {
 	t.Parallel()
 
-	// Test with zero value (should use default)
-	conf := Conf{HTTPTimeout: 0}
-	if conf.HTTPTimeout != 0 {
-		t.Errorf("Expected HTTPTimeout to be 0 (unset), got %d", conf.HTTPTimeout)
+	// Test with empty value (should use default)
+	conf := Conf{HTTPTimeout: ""}
+	if conf.HTTPTimeout != "" {
+		t.Errorf("Expected HTTPTimeout to be empty (unset), got %s", conf.HTTPTimeout)
 	}
 
-	// Test with custom value
-	conf2 := Conf{HTTPTimeout: 600}
-	if conf2.HTTPTimeout != 600 {
-		t.Errorf("Expected HTTPTimeout to be 600, got %d", conf2.HTTPTimeout)
+	// Test with duration string
+	conf2 := Conf{HTTPTimeout: "5m"}
+	if conf2.HTTPTimeout != "5m" {
+		t.Errorf("Expected HTTPTimeout to be '5m', got %s", conf2.HTTPTimeout)
 	}
 
-	// Test with negative value (should be treated as zero/default in main.go)
-	conf3 := Conf{HTTPTimeout: -1}
-	if conf3.HTTPTimeout != -1 {
-		t.Errorf("Expected HTTPTimeout to be -1, got %d", conf3.HTTPTimeout)
+	// Test with plain number (seconds)
+	conf3 := Conf{HTTPTimeout: "600"}
+	if conf3.HTTPTimeout != "600" {
+		t.Errorf("Expected HTTPTimeout to be '600', got %s", conf3.HTTPTimeout)
 	}
 }
