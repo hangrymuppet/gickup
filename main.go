@@ -45,6 +45,15 @@ import (
 	"github.com/rs/zerolog/log"
 )
 
+const (
+	// Default HTTP timeout for git operations (in seconds)
+	defaultHTTPTimeout = 300
+	// TLS handshake timeout for git operations
+	tlsHandshakeTimeout = 10 * time.Second
+	// HTTP expect continue timeout for git operations
+	expectContinueTimeout = 1 * time.Second
+)
+
 var cli struct {
 	Configfiles []string `arg name:"conf" help:"Path to the configfile." default:"conf.yml"`
 	Version     bool     `flag name:"version" help:"Show version."`
@@ -889,14 +898,14 @@ func runBackup(conf *types.Conf, num int) {
 	// Configure HTTP client timeout for git operations
 	timeout := conf.HTTPTimeout
 	if timeout <= 0 {
-		timeout = 300 // Default to 300 seconds (5 minutes)
+		timeout = defaultHTTPTimeout
 	}
 	httpClient := &http.Client{
 		Timeout: time.Duration(timeout) * time.Second,
 		Transport: &http.Transport{
-			TLSHandshakeTimeout:   10 * time.Second,
+			TLSHandshakeTimeout:   tlsHandshakeTimeout,
 			ResponseHeaderTimeout: time.Duration(timeout) * time.Second,
-			ExpectContinueTimeout: 1 * time.Second,
+			ExpectContinueTimeout: expectContinueTimeout,
 		},
 	}
 	githttp.DefaultClient = githttp.NewClient(httpClient)
